@@ -37,7 +37,7 @@ void uservp(nrs_t *nrs, dfloat time, occa::memory o_U, occa::memory o_S,
 
   userVpKernel(mesh->Nelements,
                nrs->fieldOffset,
-               nrs->cds->fieldOffset[0],
+               nrs->cds->fieldOffsetSum,
                visc,
                cond,
                o_S,
