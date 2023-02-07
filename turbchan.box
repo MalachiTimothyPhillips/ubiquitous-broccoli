@@ -1,0 +1,39 @@
+base.rea
+-3                     spatial dimension  ( < 0 --> generate .rea/.re2 pair)
+12                      number of fields
+#=======================================================================
+#
+#    Example of .box file for Taylor-Green
+#
+#    If nelx (y or z) < 0, then genbox automatically generates the
+#                          grid spacing in the x (y or z) direction
+#                          with a geometric ratio given by "ratio".
+#                          ( ratio=1 implies uniform spacing )
+#
+#    Note that the character bcs _must_ have 3 spaces.
+#
+#=======================================================================
+#
+Box
+-16  24  -12                                        nelx,nely,nelz for Box
+0 4. 1.                                             x0,x1,gain  (rescaled in usrdat)
+-1.0000  -0.99766876919053915 -0.97908408768232291 -0.94226092211882051
+-0.88788521840237522 -0.81696989301044198 -0.73083596427812403
+-0.63108794432605275 -0.51958395003543356 -0.39840108984624145
+-0.26979677115702427 -0.13616664909624659 0.000000 0.13616664909624659
+0.26979677115702427 0.39840108984624145 0.51958395003543356 0.63108794432605275
+0.73083596427812403 0.81696989301044198 0.88788521840237522 0.94226092211882051
+0.97908408768232291 0.99766876919053915 1.0000
+0 4. 1.                                             x0,x1,gain  (rescaled in usrdat)
+P  ,P  ,W  ,W  ,P  ,P                               bc's  (3 chars each!)
+P  ,P  ,t  ,t  ,P  ,P                               bc's  (3 chars each!)
+P  ,P  ,t  ,t  ,P  ,P                               bc's  (3 chars each!)
+P  ,P  ,t  ,t  ,P  ,P                               bc's  (3 chars each!)
+P  ,P  ,t  ,t  ,P  ,P                               bc's  (3 chars each!)
+P  ,P  ,t  ,t  ,P  ,P                               bc's  (3 chars each!)
+P  ,P  ,t  ,t  ,P  ,P                               bc's  (3 chars each!)
+P  ,P  ,t  ,t  ,P  ,P                               bc's  (3 chars each!)
+P  ,P  ,t  ,t  ,P  ,P                               bc's  (3 chars each!)
+P  ,P  ,t  ,t  ,P  ,P                               bc's  (3 chars each!)
+P  ,P  ,t  ,t  ,P  ,P                               bc's  (3 chars each!)
+P  ,P  ,t  ,t  ,P  ,P                               bc's  (3 chars each!)

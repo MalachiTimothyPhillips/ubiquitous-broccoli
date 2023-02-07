@@ -1,0 +1,154 @@
+//
+// nekRS User Defined File
+//
+
+#include <math.h>
+#include "udf.hpp"
+#include "plugins/tavg.hpp"
+#include <limits>
+#include <cmath>
+#include "plugins/lowMach.hpp"
+
+static dlong NUMBER_ELEMENTS_X;
+static dlong NUMBER_ELEMENTS_Y;
+static dlong NUMBER_ELEMENTS_Z;
+static int tAvg_writeInterval;
+
+static dfloat P_DELTA;
+static dfloat P_GAMMA;
+static dfloat visc;
+static dfloat cond;
+
+static occa::kernel stressTensorKernel;
+
+#if 1
+static occa::kernel userQKernel;
+static occa::kernel userVpKernel;
+
+void qtl(nrs_t* nrs, dfloat time, occa::memory o_div)
+{
+  lowMach::qThermalIdealGasSingleComponent(time, o_div);
+}
+
+void uservp(nrs_t *nrs, dfloat time, occa::memory o_U, occa::memory o_S,
+            occa::memory o_UProp, occa::memory o_SProp)
+{
+  auto mesh = nrs->meshV;
+
+  userVpKernel(mesh->Nelements,
+               nrs->fieldOffset,
+               nrs->cds->fieldOffset[0],
+               visc,
+               cond,
+               o_S,
+               o_UProp,
+               o_SProp);
+}
+#endif
+
+/* UDF Functions */                                                      
+
+void UDF_Setup0(MPI_Comm comm, setupAide &options)
+{
+  options.getArgs("VISCOSITY", visc);
+  options.getArgs("SCALAR00 DIFFUSIVITY", cond);
+
+  platform->par->extract("casedata","number_elements_x",NUMBER_ELEMENTS_X);
+  platform->par->extract("casedata","number_elements_y",NUMBER_ELEMENTS_Y);
+  platform->par->extract("casedata","number_elements_z",NUMBER_ELEMENTS_Z);
+  platform->par->extract("casedata","tavg_writeinterval", tAvg_writeInterval);
+  platform->par->extract("casedata", "p_delta", P_DELTA);
+  platform->par->extract("casedata", "p_gamma", P_GAMMA);
+
+  if (platform->options.compareArgs("BUILD ONLY", "FALSE")) {
+    const auto nek_cb_scnrs = (double*) nek::ptr("cb_scnrs");
+    nek_cb_scnrs[0] = P_DELTA;
+    nek_cb_scnrs[1] = P_GAMMA;
+  }
+}
+
+void UDF_LoadKernels(occa::properties& kernelInfo)
+{
+
+#if 1
+  userVpKernel = oudfBuildKernel(kernelInfo, "userVp");
+  lowMach::buildKernel(kernelInfo);
+#endif
+
+  stressTensorKernel = oudfBuildKernel(kernelInfo, "stressTensor");
+  tavg::buildKernel(kernelInfo);
+}
+
+void UDF_Setup(nrs_t *nrs)
+{
+
+#if 1
+  udf.properties = &uservp;
+  udf.div = &qtl;
+  lowMach::setup(nrs, P_GAMMA);
+#endif
+
+  tavg::setup(nrs);
+}
+
+void UDF_ExecuteStep(nrs_t *nrs, dfloat time, int tstep)
+{
+  mesh_t *mesh = nrs->meshV;
+  tavg::run(time);
+
+  occa::memory o_UX = nrs->o_U + 0*nrs->fieldOffset * sizeof(dfloat);
+// occa::memory o_UY = nrs->o_U + 1*nrs->fieldOffset * sizeof(dfloat);
+// occa::memory o_UZ = nrs->o_U + 2*nrs->fieldOffset * sizeof(dfloat);
+
+  const dfloat ubar = platform->linAlg->innerProd(mesh->Nlocal, o_UX, mesh->o_LMM, platform->comm.mpiComm)/mesh->volume;
+  if (platform->comm.mpiRank == 0) printf(" uBulk: %d %g %g\n",tstep,time,ubar);
+
+  // scalar 0 is temperature
+  // scalar 1 is lambda2
+  // remaining 9 scalars are stress stored as
+  //  2: mu dU/dx
+  //  3: mu dU/dy
+  //  4: mu dU/dz
+  //  5: mu dV/dx
+  //  6: mu dV/dy
+  //  7: mu dV/dz
+  //  8: mu dW/dx
+  //  9: mu dW/dy
+  // 10: mu dW/dz
+
+  auto o_stress = nrs->cds->o_S + nrs->cds->fieldOffsetScan[2] * sizeof(dfloat);
+  stressTensorKernel(mesh->Nelements,
+                                    mesh->o_vgeo,
+                                    mesh->o_D,
+                                    nrs->fieldOffset,
+                                    nrs->o_mue,
+                                    mesh->o_invLMM,
+                                    nrs->o_U,
+                                    o_stress);
+  oogs::startFinish(o_stress, 9, nrs->fieldOffset, ogsDfloat, ogsAdd, nrs->gsh);
+
+  // here's how to access the fields later on...
+  // note access is based on o_stress, not cds->o_S
+  // this removes an annoying off-by-one from storing the temperature
+  auto o_mudUdx = o_stress + 0 * nrs->fieldOffset * sizeof(dfloat);
+  auto o_mudUdy = o_stress + 1 * nrs->fieldOffset * sizeof(dfloat);
+  auto o_mudUdz = o_stress + 2 * nrs->fieldOffset * sizeof(dfloat);
+  auto o_mudVdx = o_stress + 3 * nrs->fieldOffset * sizeof(dfloat);
+  auto o_mudVdy = o_stress + 4 * nrs->fieldOffset * sizeof(dfloat);
+  auto o_mudVdz = o_stress + 5 * nrs->fieldOffset * sizeof(dfloat);
+  auto o_mudWdx = o_stress + 6 * nrs->fieldOffset * sizeof(dfloat);
+  auto o_mudWdy = o_stress + 7 * nrs->fieldOffset * sizeof(dfloat);
+  auto o_mudWdz = o_stress + 8 * nrs->fieldOffset * sizeof(dfloat);
+
+
+  if (nrs->isOutputStep) {
+    nek::ocopyToNek(time, tstep);
+    nek::userchk();
+    nek::ocopyFromNek(time); // lambda2
+  }
+
+  if (tstep>1 && tstep%tAvg_writeInterval==0){
+    tavg::outfld();
+  }
+
+}

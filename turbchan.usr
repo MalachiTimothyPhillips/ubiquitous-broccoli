@@ -1,0 +1,120 @@
+c-----------------------------------------------------------------------
+      subroutine userchk
+
+      include 'SIZE'
+      include 'TOTAL'
+      include 'AVG'
+
+      integer ntot,i
+
+      ntot = lx1*ly1*lz1*nelt
+
+      if (istep.eq.0) then
+c         call rone(t,n)
+        do i=1,ntot
+          yy   = ym1(i,1,1,1)
+          t(i,1,1,1,1) = 1.0 + 0.75*0.5*(yy+1)
+        enddo
+      endif
+
+      call lambda2(t(1,1,1,1,2))
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine useric (ix,iy,iz,ieg)
+
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+
+      common /c_re395/ ubulk,re_tau,re_b
+
+      integer idum
+      save    idum
+      data    idum  / 0 /
+
+
+
+c     Estimate ubulk from:  Re_tau = 0.166*(Re_b)^0.88     Re_b = U_b*h/nu
+
+      if (idum.eq.0) then
+         idum   = 1
+         Re_tau = 1./param(2)
+         Re_b   = (Re_tau/0.166)**(1./0.88)
+         ubulk  = Re_b/Re_tau   ! u_t = 1.0
+      endif
+
+
+
+      ux=(7./6.)*(1.0-y**6)
+      uy=0.01*(ran1(idum)-.5)
+      uz=0.05*(ran1(idum)-.5)
+
+      if (y.lt.0) then
+         argz = 6*z
+         argx = 2*x
+         arg2 = sin(argx)
+         if (abs(y).gt.0.9) ux = ux + 0.3*sin(argz+arg2)
+      else
+         argz = -8*z
+         argx = 2*x
+         arg2 = sin(argx)
+         if (abs(y).gt.0.9) ux = ux + 0.3*sin(argz+arg2)
+      endif
+
+      Under = 0.95
+
+      ux = Under * ux   ! Scale initial condition to match
+      uy = Under * uy   ! estimated bulk velocity.  Also,
+      uz = Under * uz   ! under-estimate mean velocity to avoid
+                                ! initial overshoot.
+
+      temp=0
+
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat2
+
+      include 'SIZE'
+      include 'TOTAL'
+
+      common /c_re395/ ubulk,re_tau,re_b
+
+c     Estimate ubulk from:  Re_tau = 0.166*(Re_b)^0.88     Re_b = U_b*h/nu
+
+      Re_tau = 1./param(2)
+      Re_b   = (Re_tau/0.166)**(1./0.88)
+      ubulk  = Re_b/Re_tau   ! u_t = 1.0
+c     param(55) = ubulk
+
+      if (nid.eq.0) write(6,1) Re_tau,Re_b,ubulk
+    1 format(1p3e12.4,' Re_tau,Re_b,ubulk')
+
+      xmin=0
+      xmax=2*pi
+      call rescale_x(xm1,xmin,xmax)
+
+      zmin=0
+      zmax=pi
+      call rescale_x(zm1,zmin,zmax)
+
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat3
+
+      include 'SIZE'
+      include 'TOTAL'
+
+      return
+      end

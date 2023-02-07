@@ -1,0 +1,80 @@
+[GENERAL] 
+polynomialOrder = 8
+startFrom = "restart.fld"
+numSteps = 30000
+dt = 1.0e-03
+writeInterval = 5000
+timeStepper = tombo2
+
+constFlowRate = meanVelocity=1.0 + direction=X
+
+[PROBLEMTYPE]
+stressFormulation = true # required for variable viscosity
+
+[PRESSURE]
+residualTol = 1e-04
+residualProjection = true
+residualProjectionVectors = 10
+
+[VELOCITY]
+residualTol = 1e-06
+density = 1.0
+viscosity = 0.00014558159
+#viscosity = -6869
+residualProjection = true
+
+[TEMPERATURE]
+residualTol = 1e-06
+conductivity = 0.00002623
+rhoCp = 1.0
+residualProjection = true
+regularization=avm+c0+highestModalDecay+scalingCoeff=0.5+rampconstant=1
+#regularization=avm+c0+hpfResidual+nmodes=1+scalingCoeff=1.0
+
+[SCALAR01] # lambda2
+solver = none
+
+[SCALAR02]
+boundaryTypeMap = none
+solver = none
+
+[SCALAR03]
+boundaryTypeMap = none
+solver = none
+
+[SCALAR04]
+boundaryTypeMap = none
+solver = none
+
+[SCALAR05]
+boundaryTypeMap = none
+solver = none
+
+[SCALAR06]
+boundaryTypeMap = none
+solver = none
+
+[SCALAR07]
+boundaryTypeMap = none
+solver = none
+
+[SCALAR08]
+boundaryTypeMap = none
+solver = none
+
+[SCALAR09]
+boundaryTypeMap = none
+solver = none
+
+[SCALAR10]
+boundaryTypeMap = none
+solver = none
+
+[CASEDATA]
+# must match that specified in the box file
+tAvg_writeInterval = 5000
+NUMBER_ELEMENTS_X = 16
+NUMBER_ELEMENTS_Y = 24
+NUMBER_ELEMENTS_Z = 12
+P_DELTA = 0.2
+P_GAMMA = 1.4
